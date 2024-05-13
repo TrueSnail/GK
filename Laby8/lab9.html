@@ -60,6 +60,7 @@ function createWorld() {
     const polesCount = 6;
     const horsesScale = 1.5;
     const size = 7.2;
+    const polygonVertex = 10;
 
     //Mesh definitions:
     Carousell = new THREE.Object3D();
@@ -67,7 +68,7 @@ function createWorld() {
     for (let i = 0; i < polesCount; i++) Horses.push(new THREE.Object3D());
 
     let base = new THREE.Mesh(  // DELETE THIS !
-        new THREE.CylinderGeometry(size, size, baseHeight, 12, 1),
+        new THREE.CylinderGeometry(size, size, baseHeight, polygonVertex, 1),
         new THREE.MeshStandardMaterial({
             color: bodyColor,
             // specular: 0x222222,
@@ -77,14 +78,14 @@ function createWorld() {
     );
     
     let top = new THREE.Mesh(
-        new THREE.CylinderGeometry(size, size, baseHeight, 12, 1),
+        new THREE.CylinderGeometry(size, size, baseHeight, polygonVertex, 1),
         new THREE.MeshStandardMaterial({
             color: bodyColor,
         })
     )
 
     let topHead = new THREE.Mesh(
-        new THREE.CylinderGeometry(0, size, 2.5, 12, 1),
+        new THREE.CylinderGeometry(0, size, 2.5, polygonVertex, 1),
         new THREE.MeshStandardMaterial({
             color: bodyColor,
         })
