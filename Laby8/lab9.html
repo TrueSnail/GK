@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<head>
+<meta charset="UTF-8">
+<title>CS 424 Lab 9</title>
+<script type="module">
+
+"use strict";
+import * as THREE from './src/Three.js'
+import { FBXLoader } from './src/FBXLoader.js'
+import * as OC from './OrbitControls.js'
+var canvas, renderer, scene, camera; // Standard three.js requirements.
+
+var controls;  // An OrbitControls object that is used to implement
+               // rotation of the scene using the mouse.  (It actually rotates
+               // the camera around the scene.)
+
+var animating = false;  // Set to true when an animation is in progress.
+var frameNumber = 0;  // Frame number is advanced by 1 for each frame while animating.
+
+let Carousell;
+let Horses;
+
+
+/**
+ *  The render function draws the scene.
+ */
+function render() {
+    renderer.render(scene, camera);
+}
+
+
+/**
+ * This function is called by the init() method to create the world. 
+ */
+function createWorld() {
+    
+    renderer.setClearColor("black"); // Background color for scene.
+    scene = new THREE.Scene();
+    
+    // ------------------- Make a camera with viewpoint light ----------------------
+    
+    camera = new THREE.PerspectiveCamera(30, canvas.width/canvas.height, 0.1, 100);
+    camera.position.z = 30;
+    var light;  // A light shining from the direction of the camera; moves with the camera.
+    light = new THREE.DirectionalLight();
+    light.position.set(0,0,1);
+    camera.add(light);
+    scene.add(camera);
+
+    
+    //Constants:
+    const carousellPosition = new THREE.Vector3(0, -4.5, 0);
+    const height = 8;
+    const baseHeight = 1;
+    const bodyColor = 0x66BBFF;
+    const centerPoleColor = 0x8f721d;
+    const sidePoleColor = 0xe8c55f;
+    const polesDistance = 5;
+    const poleSize = 0.2;
+    const polesCount = 6;
+    const horsesScale = 1.5;
+    const size = 7.2;
+
+    //Mesh definitions:
+    Carousell = new THREE.Object3D();
+    Horses = new Array();
+    for (let i = 0; i < polesCount; i++) Horses.push(new THREE.Object3D());
+
+    let base = new THREE.Mesh(  // DELETE THIS !
+        new THREE.CylinderGeometry(size, size, baseHeight, 12, 1),
+        new THREE.MeshStandardMaterial({
+            color: bodyColor,
+            // specular: 0x222222,
+            // shininess: 16,
+            // shading: THREE.FlatShading
+        })
+    );
+    
+    let top = new THREE.Mesh(
+        new THREE.CylinderGeometry(size, size, baseHeight, 12, 1),
+        new THREE.MeshStandardMaterial({
+            color: bodyColor,
+        })
+    )
+
+    let topHead = new THREE.Mesh(
+        new THREE.CylinderGeometry(0, size, 2.5, 12, 1),
+        new THREE.MeshStandardMaterial({
+            color: bodyColor,
+        })
+    )
+
+    let centerPole = new THREE.Mesh(
+        new THREE.CylinderGeometry(poleSize * 3, poleSize * 3, height, 30, 10),
+        new THREE.MeshStandardMaterial({
+            color: centerPoleColor
+        })
+    )
+    
+    let sidePoles = new Array();
+    for (let i = 0; i < polesCount; i++) {
+        sidePoles.push(
+            new THREE.Mesh(
+                new THREE.CylinderGeometry(poleSize, poleSize, height, 30, 10),
+                new THREE.MeshStandardMaterial({
+                    color: sidePoleColor
+                })
+            )
+        );
+    }
+
+    //Object3D transforms:
+    Carousell.position.set(carousellPosition.x, carousellPosition.y, carousellPosition.z);
+    topHead.position.set(0, baseHeight + 0.75, 0);
+    top.position.set(0, height, 0);
+    centerPole.position.set(0, height / 2, 0);
+    for (let i = 0; i < polesCount; i++) {
+        let progress = (i / polesCount) * Math.PI * 2;
+
+        sidePoles[i].position.set(Math.sin(progress) * polesDistance, height / 2, Math.cos(progress) * polesDistance);
+        Horses[i].scale.set(horsesScale, horsesScale, horsesScale);
+        Horses[i].position.set(0,-height / 3,0);
+        Horses[i].rotation.y = progress + 80;
+    }
+
+    //Graph building:
+    top.add(topHead);
+    Carousell.add(base);
+    Carousell.add(top);
+    Carousell.add(centerPole);
+    for (let i = 0; i < polesCount; i++) {
+        sidePoles[i].add(Horses[i]);
+        Carousell.add(sidePoles[i]);
+    }
+    scene.add(Carousell);
+
+    //Loading Horse
+    const fbxLoader = new FBXLoader()
+    fbxLoader.load(
+        './resources/horse-v02.fbx',
+        (object) => {
+            for (let i = 0; i < Horses.length; i++) Horses[i].add(object.clone());
+            render();
+        },
+        (error) => {
+            console.log(error)
+        }
+    );
+    // const sides = 12
+    // let vertices = new Array();
+    // let faceIndexes = new Array();
+    // let colors = new Array();
+    // for (let i = 0; i < sides; i++) {
+    //     let progress = (i / sides) * 2 * Math.PI;
+    //     //let point = new THREE.Vector(Math.sin(progress), Math.cos(progress), 0);
+    //     vertices.push(Math.sin(progress));
+    //     vertices.push(Math.cos(progress));
+    //     vertices.push(0);
+    //     colors.push(1);
+    //     colors.push(1);
+    //     colors.push(1);
+    // }
+    // faceIndexes.push(0);
+    // faceIndexes.push(1);
+    // faceIndexes.push(sides - 1);
+    // for (let i = 1; i < (sides / 2) - 1; i++) {
+    //     faceIndexes.push(i);
+    //     faceIndexes.push(sides - i);
+    //     if (i % 2 == 0) faceIndexes.push(sides - i - 1);
+    //     else faceIndexes.push(i + 1);
+    // }
+    // console.log(faceIndexes);
+    // console.log(new Float32Array(vertices));
+    // let baseGeometry = new THREE.BufferGeometry();
+    // baseGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(vertices),3));
+    // baseGeometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(colors),3));
+    // baseGeometry.setIndex([0,1,11,1,11,2,2,11,10,10,2,3,3,10,9,9,3,4,4,9,5,5,9,8,8,6,7]);
+    // //baseGeometry.computeVertexNormals()
+    // let base = new THREE.Mesh(
+    //     baseGeometry,
+    //     new THREE.MeshStandardMaterial({
+    //         color: 0x66BBFF,
+    //         // specular: 0x222222,
+    //         // shininess: 16,
+    //         // shading: THREE.FlatShading
+    //     })
+    // )
+    //base.scale.set(new THREE.Vector3(10,10,10));
+    //scene.add(base);
+} // end function createWorld()
+
+
+/**
+ *  This function is called once for each frame of the animation, before
+ *  the render() function is called for that frame.  It updates any
+ *  animated properties.  The value of the global variable frameNumber
+ *  is incrementd 1 before this function is called.
+ */
+function updateForFrame() {
+    
+    // Update size and rotation of tempObject.  DELETE THIS!
+    // var loopFrame = frameNumber % 240;
+    // if (loopFrame > 120) {
+    //     loopFrame = 240 - loopFrame;
+    // }
+    // var scaleFactor = 1 + loopFrame/120;
+    // tempObject.scale.set(scaleFactor,scaleFactor,scaleFactor);
+    // tempObject.rotation.y += 0.01;
+    Carousell.rotation.y -= 0.02;
+}
+
+
+/* ---------------------------- MOUSE AND ANIMATION SUPPORT ------------------
+
+/**
+ *  This page uses THREE.OrbitControls to let the user use the mouse to rotate
+ *  the view.  OrbitControls are designed to be used during an animation, where
+ *  the rotation is updated as part of preparing for the next frame.  The scene
+ *  is not automatically updated just because the user drags the mouse.  To get
+ *  the rotation to work without animation, I add another mouse listener to the
+ *  canvas, just to call the render() function when the user drags the mouse.
+ *  The same thing holds for touch events -- I call render for any mouse move
+ *  event with one touch.
+ */
+function installOrbitControls() {
+    controls = new OC.OrbitControls(camera,canvas);
+    controls.noPan = true; 
+    controls.noZoom = true;
+    controls.staticMoving = true;
+    function move() {
+        controls.update();
+        if (! animating) {
+            render();
+        }
+    }
+    function down() {
+        document.addEventListener("mousemove", move, false);
+    }
+    function up() {
+        document.removeEventListener("mousemove", move, false);
+    }
+    function touch(event) {
+        if (event.touches.length == 1) {
+            move();
+        }
+    }
+    canvas.addEventListener("mousedown", down, false);
+    canvas.addEventListener("touchmove", touch, false);
+}
+
+/*  Called when user changes setting of the Animate checkbox. */
+function doAnimateCheckbox() {
+   var run = document.getElementById("animateCheckbox").checked;
+   if (run != animating) {
+       animating = run;
+       if (animating) {
+           requestAnimationFrame(doFrame);
+       }
+   }
+}
+
+/*  Drives the animation, called by system through requestAnimationFrame() */
+function doFrame() {
+    if (animating) {
+        frameNumber++;
+        updateForFrame();
+        render();
+        requestAnimationFrame(doFrame);
+    }
+}
+
+/*----------------------------- INITIALIZATION ----------------------------------------
+
+/**
+ *  This function is called by the onload event so it will run after the
+ *  page has loaded.  It creates the renderer, canvas, and scene objects,
+ *  calls createWorld() to add objects to the scene, and renders the
+ *  initial view of the scene.  If an error occurs, it is reported.
+ */
+ document.addEventListener("DOMContentLoaded", (event) => {
+    init();
+});
+function init() {
+    try {
+        canvas = document.getElementById("glcanvas");
+        renderer = new THREE.WebGLRenderer({
+            canvas: canvas,
+            antialias: true,
+            alpha: false
+        });
+    }
+    catch (e) {
+        document.getElementById("message").innerHTML="<b>Sorry, an error occurred:<br>" +
+                e + "</b>";
+        return;
+    }
+    document.getElementById("animateCheckbox").checked = false;
+    document.getElementById("animateCheckbox").onchange = doAnimateCheckbox;
+    createWorld();
+    installOrbitControls();
+    render();
+}
+
+</script>
+</head>
+<body>
+
+<h2>Three.js Modeling Demo: Merry-Go-Round</h2>
+<h3>Horse model made by: victorberdugo1</h3>
+
+<noscript>
+   <p style="color: #AA0000; font-weight: bold">Sorry, but this page requires JavaScript!</p>
+</noscript>
+
+<p style="color:#AA0000; font-weight: bold" id="message">
+</p>
+
+<p>
+   <label><input type="checkbox" id="animateCheckbox"><b>Animate</b></label>
+   <b style="margin-left:50px">Use the mouse to rotate the model.</b>
+</p>
+
+<div id="canvas-holder" style="float:left; border: thin solid black; background-color: white">
+   <canvas width=1200 height=600 id="glcanvas"></canvas>
+</div>
+
+</body>
+</html>
